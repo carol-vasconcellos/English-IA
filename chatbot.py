@@ -1,60 +1,44 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
 import random
-
-tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-small")
-model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-small")
+import requests
 
 prompts = [
-    "Let's talk about movies.",
-    "What do you think about traveling?",
-    "Tell me about your favorite food.",
-    "Do you like music? What kind?",
-    "Have you read any good books lately?",
-    "What's your hobby?",
-    "Tell me about your day.",
-    "Do you enjoy sports?",
+    "Let's talk about movies!",
+    "What's your favorite dish to cook?",
+    "If you could travel anywhere, where would you go?",
+    "What kind of music do you like?",
+    "Tell me something interesting that happened this week.",
 ]
 
-chat_history_ids = None
-max_turns = 6
-turns = 0
+history = []
+max_history = 5  # reduzido por limitação do modelo gratuito
 
 def responder_mensagem(user_input):
-    global chat_history_ids, turns
+    global history
 
-    if chat_history_ids is None or turns >= max_turns:
-        prompt = random.choice(prompts)
-        print(f"💡 AI inicia o tópico: {prompt}")
-        new_input = prompt + " " + user_input
-        chat_history_ids = None
-        turns = 0
-    else:
-        new_input = user_input
+    if not user_input.strip():
+        user_input = random.choice(prompts)
+        print(f"💡 AI inicia o tópico: {user_input}")
 
-    new_input_ids = tokenizer.encode(new_input + tokenizer.eos_token, return_tensors='pt')
+    history.append({"role": "user", "content": user_input})
 
-    # Criar attention_mask para os tokens
-    attention_mask = torch.ones(new_input_ids.shape, dtype=torch.long)
+    # Monta o histórico em formato de string (modelo mistral não aceita JSON)
+    conversation = ""
+    for h in history[-max_history:]:
+        role = "You" if h["role"] == "user" else "AI"
+        conversation += f"{role}: {h['content']}\n"
+    conversation += "AI:"
 
-    if chat_history_ids is not None:
-        bot_input_ids = torch.cat([chat_history_ids, new_input_ids], dim=-1)
-        attention_mask = torch.ones(bot_input_ids.shape, dtype=torch.long)
-    else:
-        bot_input_ids = new_input_ids
-
-    chat_history_ids = model.generate(
-        bot_input_ids,
-        attention_mask=attention_mask,
-        max_length=1000,
-        pad_token_id=tokenizer.eos_token_id,
-        do_sample=True,
-        top_p=0.9,
-        temperature=0.8,
-        no_repeat_ngram_size=3
+    response = requests.post(
+        "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1",
+        headers={"Accept": "application/json"},
+        json={"inputs": conversation},
     )
 
-    resposta = tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
-    turns += 1
+    if response.status_code != 200:
+        return "⚠️ Erro ao se comunicar com o modelo gratuito da Hugging Face."
 
+    data = response.json()
+    resposta = data[0]["generated_text"].split("AI:")[-1].strip()
+
+    history.append({"role": "assistant", "content": resposta})
     return resposta

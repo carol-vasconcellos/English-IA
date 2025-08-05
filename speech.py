@@ -3,6 +3,7 @@ import speech_recognition as sr
 def ouvir_audio():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
+        print("🎤 Estou ouvindo... fale algo!")
         audio = recognizer.listen(source)
     try:
         texto = recognizer.recognize_google(audio, language="en-US")

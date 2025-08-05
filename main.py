@@ -1,14 +1,10 @@
 from chatbot import responder_mensagem
-from speech import ouvir_audio
 from feedback import analisar_texto
+from speech import ouvir_audio
 from tts import falar_texto
-from googletrans import Translator
-
-translator = Translator()
-
-def traduzir(texto):
-    traducao = translator.translate(texto, dest='pt')
-    return traducao.text
+from tradutor import traduzir
+from dotenv import load_dotenv
+import os
 
 def modo_texto():
     while True:
@@ -16,6 +12,11 @@ def modo_texto():
         if entrada.lower() in ['exit', 'sair']:
             print("👋 Encerrando o modo texto...")
             break
+
+        if not entrada:
+            print("🤖 AI: You seem quiet. Want me to start a topic?")
+            falar_texto("You seem quiet. Want me to start a topic?")
+            continue
 
         analisar_texto(entrada)
         resposta = responder_mensagem(entrada)
@@ -47,15 +48,16 @@ def menu():
     print("2. Praticar com voz")
     print("3. Sair")
 
-while True:
-    menu()
-    opcao = input("Escolha: ").strip()
-    if opcao == "1":
-        modo_texto()
-    elif opcao == "2":
-        modo_voz()
-    elif opcao == "3":
-        print("👋 Até a próxima!")
-        break
-    else:
-        print("❌ Opção inválida.")
+if __name__ == "__main__":
+    while True:
+        menu()
+        opcao = input("Escolha: ").strip()
+        if opcao == "1":
+            modo_texto()
+        elif opcao == "2":
+            modo_voz()
+        elif opcao == "3":
+            print("👋 Até a próxima!")
+            break
+        else:
+            print("❌ Opção inválida.")

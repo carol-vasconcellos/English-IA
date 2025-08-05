@@ -16,5 +16,5 @@ def analisar_texto(texto):
         print(f"🔁 Sugestão: {m.replacements}")
         print(f"📍 Contexto: {m.context}")
         print("---")
-    
+
     falar_texto("There are some mistakes. Let me show you.")
